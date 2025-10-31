@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>GeoIntel Datasets · 地理空间智能数据集中心</title>
+<meta name="description" content="高质量地理空间智能数据集门户：遥感、矢量、时序、气候、地形与多模态数据，支持STAC、API检索、可视化与下载。"/>
+<style>
+  /* 设计系统 */
+  :root{
+    --bg:#0b1220;
+    --panel:#0f1a2e;
+    --card:#111f35;
+    --text:#eaf2ff;
+    --muted:#a9bedf;
+    --line:#213555;
+    --accent:#5dd0ff;
+    --accent2:#7cfab0;
+    --warn:#ffcc45;
+    --danger:#ff6a6a;
+    --shadow:0 12px 36px rgba(0,0,0,.28);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f7fbff; --panel:#ffffff; --card:#ffffff; --text:#0d2038; --muted:#536b8f; --line:#d4e2f4;
+      --shadow:0 10px 28px rgba(12,52,91,.12);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Helvetica,Arial}
+  a{color:inherit;text-decoration:none}
+  .container{max-width:1200px;margin:0 auto;padding:18px}
+  /* 顶栏 */
+  header{position:sticky;top:0;background:linear-gradient(180deg,var(--bg) 60%,transparent);backdrop-filter:saturate(140%) blur(10px);z-index:9}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 0 2px rgba(93,208,255,.2)}
+  .brand h1{font-size:18px;margin:0;letter-spacing:.2px}
+  .navlinks{display:flex;gap:16px;font-size:14px}
+  .navlinks a{opacity:.85}
+  .navlinks a:hover{opacity:1}
+  .actions{display:flex;gap:8px}
+  .btn{border:1px solid var(--line);background:transparent;color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#04121f;border:none}
+  /* 英雄区 */
+  .hero{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;align-items:center;padding:18px 0}
+  @media (max-width:960px){.hero{grid-template-columns:1fr}}
+  .hero .title{font-size:34px;line-height:1.2;margin:8px 0 10px}
+  .hero .sub{font-size:14px;color:var(--muted);max-width:720px}
+  .hero .cta{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  /* 动态地球可视化 */
+  .globe{aspect-ratio:4/3;position:relative}
+  canvas{display:block;width:100%;height:100%}
+  .globe .overlay{position:absolute;inset:0;pointer-events:none}
+  .badge{position:absolute;right:10px;top:10px;background:rgba(93,208,255,.12);border:1px solid var(--line);color:var(--text);font-size:12px;padding:6px 8px;border-radius:999px}
+  /* 搜索与筛选 */
+  .searchBar{margin-top:14px;display:grid;grid-template-columns:1.2fr .8fr .8fr .8fr auto;gap:8px}
+  @media (max-width:900px){.searchBar{grid-template-columns:1fr 1fr 1fr}}
+  .input, select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--text);outline:none}
+  .input::placeholder{color:var(--muted)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .chip{font-size:12px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted)}
+  .chip.active{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;color:#072033}
+  /* 卡片网格 */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+  @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:700px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+  .thumb{height:148px;position:relative;background:linear-gradient(180deg,rgba(93,208,255,.14),transparent),radial-gradient(900px 220px at 70% -10%, rgba(124,250,176,.18), transparent 60%),#0d1b31}
+  .thumb canvas{width:100%;height:100%}
+  .label{position:absolute;left:10px;top:10px;font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.2);border:1px solid var(--line)}
+  .body{padding:12px;display:flex;flex-direction:column;gap:8px}
+  .titleRow{display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .titleRow h3{margin:0;font-size:15px}
+  .meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+  .tags{display:flex;gap:6px;flex-wrap:wrap}
+  .tag{font-size:11px;border:1px solid var(--line);padding:3px 8px;border-radius:999px;color:#cfe6ff}
+  .foot{margin-top:auto;display:flex;gap:8px}
+  .mini{flex:1;border:1px solid var(--line);background:transparent;color:var(--text);padding:8px;border-radius:10px;cursor:pointer}
+  .mini.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#072033;border:none}
+  /* 侧边统计 */
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px}
+  .stat{padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+  .stat .num{font-weight:700;font-size:18px}
+  .stat .desc{font-size:12px;color:var(--muted)}
+  /* 弹窗 */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+  .modal .paper{max-width:900px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .modal header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:10px 12px;background:linear-gradient(180deg, rgba(93,208,255,.06), transparent)}
+  .modal .content{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;padding:12px}
+  @media (max-width:900px){.modal .content{grid-template-columns:1fr}}
+  .close{border:1px solid var(--line);background:transparent;color:var(--text);padding:6px 10px;border-radius:8px;cursor:pointer}
+  .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .kpi .box{border:1px solid var(--line);border-radius:10px;padding:10px}
+  .kpi .big{font-size:18px;font-weight:700}
+  .code{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;font-size:12px;background:#0b1526;border:1px solid var(--line);border-radius:10px;padding:10px;color:#cfe6ff;overflow:auto}
+  /* 页脚 */
+  footer{margin-top:20px;border-top:1px solid var(--line);padding:14px 0;color:var(--muted);font-size:12px}
+  /* 交互细节 */
+  .hoverLift{transition:transform .2s ease, box-shadow .2s ease}
+  .hoverLift:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(93,208,255,.15)}
+</style>
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <div class="brand">
+      <div class="logo"></div>
+      <h1>GeoIntel Datasets</h1>
+    </div>
+    <nav class="navlinks">
+      <a href="#catalog">目录</a>
+      <a href="#api">API</a>
+      <a href="#about">标准</a>
+      <a href="#subscribe">订阅</a>
+    </nav>
+    <div class="actions">
+      <button class="btn" id="themeBtn">外观</button>
+      <button class="btn primary" onclick="scrollToEl('#catalog')">浏览数据集</button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <!-- 英雄区 -->
+  <section class="hero">
+    <div>
+      <div class="panel" style="padding:14px">
+        <div class="badge">STAC Ready · 多模态 · 可复现</div>
+        <h2 class="title">面向大模型时代的地理空间智能数据集中心</h2>
+        <p class="sub">
+          覆盖光学/SAR/DEM/矢量/时序/文本等多模态，提供标准化元数据（STAC/ISO 19115）、质量评估（QA/QC）、任务协议与基准分割/检测标签。
+          内置可检索、可视化、可下载与API访问能力，助力地理空间基础模型预训练与行业应用。
+        </p>
+        <div class="cta">
+          <button class="btn primary" onclick="scrollToEl('#catalog')">立即探索</button>
+          <button class="btn" onclick="scrollToEl('#about')">建设标准</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="num" id="k1">1,248</div><div class="desc">数据集条目</div></div>
+          <div class="stat"><div class="num" id="k2">5.4 PB</div><div class="desc">总数据量</div></div>
+          <div class="stat"><div class="num" id="k3">67</div><div class="desc">覆盖国家/地区</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel globe hoverLift">
+      <div class="badge">预训练资源热度</div>
+      <canvas id="globe"></canvas>
+      <div class="overlay" id="globeOverlay"></div>
+    </div>
+  </section>
+
+  <!-- 搜索筛选 -->
+  <section id="catalog">
+    <div class="panel" style="padding:12px">
+      <div class="searchBar">
+        <input class="input" id="q" placeholder="搜索：关键词、任务（LULC/Change/Building）、传感器（Landsat/S1/S2）"/>
+        <select id="task">
+          <option value="">全部任务</option>
+          <option>分类</option><option>分割</option><option>检测</option><option>变化检测</option><option>时序预测</option>
+        </select>
+        <select id="modality">
+          <option value="">模态</option><option>光学</option><option>SAR</option><option>DEM</option><option>矢量</option><option>多模态</option>
+        </select>
+        <select id="license">
+          <option value="">许可</option><option>开放</option><option>学术</option><option>商业</option>
+        </select>
+        <button class="btn" onclick="applyFilters()">筛选</button>
+      </div>
+      <div class="chips" id="quick">
+        <span class="chip active" data-k="hot">Hot</span>
+        <span class="chip" data-k="foundation">预训练</span>
+        <span class="chip" data-k="lulc">LULC</span>
+        <span class="chip" data-k="building">建筑物</span>
+        <span class="chip" data-k="change">变化</span>
+        <span class="chip" data-k="water">水体</span>
+        <span class="chip" data-k="disaster">灾害</span>
+        <span class="chip" data-k="climate">气候</span>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <!-- API/标准 -->
+  <section id="api" style="margin-top:16px">
+    <div class="panel" style="padding:12px">
+      <h3>API 与程序化访问</h3>
+      <p class="sub">兼容 OGC STAC 1.0，支持按时间/空间/波段/云量过滤；提供签名URL/令牌下载与分块流式访问。</p>
+      <pre class="code">GET /stac/search
+{
+  "bbox":[73.3,18.2,135.0,53.6],
+  "datetime":"2023-01-01/2024-12-31",
+  "collections":["landsat-c2-l2","sentinel-1-grd"],
+  "query":{"eo:cloud_cover":{"lt":20},"gsd":{"lte":10}}
+}</pre>
+      <pre class="code">curl -H "Authorization: Bearer &lt;token&gt;" \
+  'https://api.geointel.dev/stac/search?bbox=...&datetime=...'</pre>
+    </div>
+  </section>
+
+  <section id="about" style="margin-top:16px">
+    <div class="panel" style="padding:12px">
+      <h3>建设标准与质量控制</h3>
+      <ul>
+        <li>元数据：ISO 19115/19139、STAC 1.0、eo:bands、proj、raster、ml:training-extent</li>
+        <li>标注协议：任务导向（分类/分割/检测/变化），类别体系可映射到 FAO LCCS/ESA WorldCover</li>
+        <li>数据治理：版本化（DVC）、数据血缘、统计报告、偏见与伦理声明、可重复性清单</li>
+        <li>评测基准：统一划分 train/val/test，跨域迁移与时序外推；提供基线模型与开箱脚本</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 订阅 -->
+  <section id="subscribe" style="margin-top:16px">
+    <div class="panel" style="padding:12px">
+      <h3>订阅更新</h3>
+      <p class="sub">订阅新数据集、热点任务与基线成绩更新。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input class="input" id="email" placeholder="你的邮箱"/>
+        <button class="btn primary" onclick="subscribe()">订阅</button>
+      </div>
+      <div id="subMsg" class="sub" style="margin-top:8px;color:var(--accent2)"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="container">
+  © 2025 GeoIntel Datasets · 采用开放标准（OGC STAC / ISO 19115） · 隐私与合规 · 联系: data@geointel.dev
+</footer>
+
+<!-- 数据集弹窗 -->
+<div class="modal" id="modal">
+  <div class="paper">
+    <header>
+      <div style="display:flex;align-items:center;gap:8px">
+        <strong id="mTitle">Dataset</strong>
+        <span class="tag" id="mTag" style="border:1px solid var(--line);padding:2px 8px;border-radius:999px;font-size:11px"></span>
+      </div>
+      <button class="close" onclick="closeModal()">关闭</button>
+    </header>
+    <div class="content">
+      <div>
+        <canvas id="mCanvas" style="width:100%;height:220px;border-radius:10px;border:1px solid var(--line)"></canvas>
+        <div class="kpi" style="margin-top:10px">
+          <div class="box"><div class="big" id="mSize">—</div><div class="sub">规模</div></div>
+          <div class="box"><div class="big" id="mArea">—</div><div class="sub">空间覆盖</div></div>
+          <div class="box"><div class="big" id="mYears">—</div><div class="sub">时间范围</div></div>
+        </div>
+      </div>
+      <div>
+        <p id="mDesc" class="sub"></p>
+        <div class="tags" id="mTags"></div>
+        <div class="foot" style="margin-top:10px">
+          <button class="mini" onclick="copyAPI()">复制STAC查询</button>
+          <button class="mini primary" onclick="download()">下载/申请访问</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 简易数据：可替换为后端返回或STAC集合 */
+const DATASETS = [
+  {id:'worldcover-2021', name:'ESA WorldCover 10m 2021', task:'分类', modality:'光学', license:'开放',
+   size:'13 TB', area:'全球', years:'2021', score:92,
+   tags:['LULC','10m','Sentinel-1/2 融合'],
+   desc:'全球10米土地覆盖产品，兼容LCCS，适合作为下游监督或评测基准。'},
+  {id:'inria-buildings', name:'INRIA Aerial Building', task:'分割', modality:'光学', license:'学术',
+   size:'25 GB', area:'欧美城市', years:'2016', score:88,
+   tags:['建筑物','航空影像','RGB 30cm'],
+   desc:'高分辨率建筑物分割数据集，精细化城市要素提取基准。'},
+  {id:'xview2-change', name:'xView2 Disaster Change', task:'变化检测', modality:'多模态', license:'开放',
+   size:'120 GB', area:'全球灾害区', years:'2018–2022', score:90,
+   tags:['灾害','前后影像','建筑损毁'],
+   desc:'灾害场景前后影像与损毁标签，适合变化/损毁识别。'},
+  {id:'sen1floods11', name:'Sen1Floods11', task:'分割', modality:'SAR', license:'开放',
+   size:'8 GB', area:'多国流域', years:'2014–2019', score:86,
+   tags:['洪水','Sentinel‑1','水体'],
+   desc:'基于S1的全球洪水分割样本，云雨条件稳健。'},
+  {id:'landsat-c2-pretrain', name:'Landsat C2 L2 Pretrain Corpus', task:'预训练', modality:'光学', license:'开放',
+   size:'2.4 PB', area:'全球', years:'1984–2024', score:95,
+   tags:['多时相','多光谱','自监督'],
+   desc:'用于地理空间基础模型预训练的Landsat多时相语料，含QA掩膜与元数据。'},
+  {id:'srtm-dem', name:'SRTM DEM 30m', task:'高程', modality:'DEM', license:'开放',
+   size:'240 GB', area:'全球（60°N–56°S）', years:'2000', score:84,
+   tags:['地形','坡度','水文分析'],
+   desc:'SRTM 30m数字高程模型，适合地形、水文与暴雨内涝建模。'},
+  {id:'dfc22-hyp', name:'DFC2022 Hyperspectral', task:'分类', modality:'多模态', license:'学术',
+   size:'120 GB', area:'美国', years:'2022', score:83,
+   tags:['高光谱','LiDAR','多源'],
+   desc:'高光谱+LiDAR的城市场景数据集，细粒度地物识别。'},
+  {id:'open-buildings', name:'Google Open Buildings', task:'检测', modality:'光学', license:'开放',
+   size:'1.8 TB', area:'全球（重点非洲/亚洲）', years:'2020–2023', score:91,
+   tags:['建筑检测','矢量','屋顶轮廓'],
+   desc:'面向建筑物轮廓的全球级矢量数据集，适合普查与城市研究。'},
+  {id:'era5-climate', name:'ERA5 Reanalysis', task:'时序预测', modality:'多模态', license:'开放',
+   size:'PB 级', area:'全球', years:'1979–至今', score:89,
+   tags:['气候再分析','多变量','逐小时'],
+   desc:'ECMWF 再分析数据，驱动水文/农业/极端事件建模的核心时序。'},
+];
+
+/* 工具函数 */
+function $(s,root=document){return root.querySelector(s)}
+function $all(s,root=document){return Array.from(root.querySelectorAll(s))}
+function scrollToEl(sel){document.querySelector(sel)?.scrollIntoView({behavior:'smooth'})}
+
+/* 渲染卡片 */
+const grid = $('#grid');
+function render(items){
+  grid.innerHTML = '';
+  items.forEach(d=>{
+    const el = document.createElement('div');
+    el.className = 'card hoverLift';
+    el.innerHTML = `
+      <div class="thumb"><canvas data-id="${d.id}"></canvas><span class="label">${d.modality}</span></div>
+      <div class="body">
+        <div class="titleRow"><h3>${d.name}</h3><span class="tag">Score ${d.score}</span></div>
+        <div class="meta"><span>${d.task}</span><span>范围：${d.area}</span><span>时期：${d.years}</span><span>许可：${d.license}</span></div>
+        <div class="tags">${d.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        <div class="foot">
+          <button class="mini" onclick="view('${d.id}')">预览</button>
+          <button class="mini primary" onclick="view('${d.id}', true)">详情</button>
+        </div>
+      </div>`;
+    grid.appendChild(el);
+  });
+  // 绘制缩略图
+  $all('.thumb canvas', grid).forEach(cv=>thumb(cv, DATASETS.find(x=>x.id===cv.dataset.id)));
+}
+
+/* 缩略图：生成简洁图样（河网/网格/热度） */
+function thumb(canvas, d){
+  const ctx = canvas.getContext('2d'), w = canvas.width = canvas.clientWidth, h = canvas.height = canvas.clientHeight;
+  // 背景
+  const g = ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,'rgba(93,208,255,.15)'); g.addColorStop(1,'rgba(124,250,176,.08)');
+  ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+  // 网格
+  ctx.strokeStyle = 'rgba(160,190,230,.25)'; ctx.lineWidth=1;
+  for(let x=0;x<w;x+=w/12){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=0;y<h;y+=h/8){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  // 主题曲线/点
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(93,208,255,.9)';
+  ctx.beginPath();
+  for(let i=0;i<9;i++){
+    const x = (i/(8))*w, y = h*0.2 + Math.sin(i*0.9 + d.score/20)*h*0.3;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  // 热点
+  for(let i=0;i<8;i++){
+    const x = Math.random()*w, y=Math.random()*h;
+    ctx.fillStyle = 'rgba(124,250,176,.7)';
+    ctx.beginPath(); ctx.arc(x,y,2+Math.random()*2,0,Math.PI*2); ctx.fill();
+  }
+}
+
+/* 过滤 */
+function applyFilters(){
+  const q = $('#q').value.trim().toLowerCase();
+  const task = $('#task').value, modality = $('#modality').value, license = $('#license').value;
+  const activeKey = $('.chip.active')?.dataset.k || '';
+  let items = DATASETS.slice();
+  if(q) items = items.filter(d => [d.name,d.desc,d.tags.join(' '),d.task,d.modality].join(' ').toLowerCase().includes(q));
+  if(task) items = items.filter(d => d.task===task);
+  if(modality) items = items.filter(d => d.modality===modality);
+  if(license) items = items.filter(d => d.license===license);
+  if(activeKey){
+    const map = {
+      hot: d=>d.score>=88,
+      foundation: d=>/预训练/i.test(d.task) || d.id.includes('pretrain'),
+      lulc: d=>/LULC|WorldCover|land/i.test(d.name+d.tags.join()),
+      building: d=>/建筑|building/i.test(d.name+d.tags.join()),
+      change: d=>/变化|change/i.test(d.name+d.tags.join()),
+      water: d=>/水体|flood|lake|river/i.test(d.name+d.tags.join()),
+      disaster: d=>/灾害|disaster/i.test(d.name+d.tags.join()),
+      climate: d=>/气候|ERA5|reanalysis/i.test(d.name+d.tags.join())
+    };
+    const fn = map[activeKey]; if(fn) items = items.filter(fn);
+  }
+  render(items);
+}
+
+/* 快速标签切换 */
+$all('#quick .chip').forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    $all('#quick .chip').forEach(x=>x.classList.remove('active'));
+    ch.classList.add('active');
+    applyFilters();
+  });
+});
+
+/* 弹窗详情 */
+function view(id, open=true){
+  const d = DATASETS.find(x=>x.id===id);
+  if(!d) return;
+  $('#mTitle').textContent = d.name;
+  $('#mTag').textContent = d.task + ' · ' + d.modality;
+  $('#mSize').textContent = d.size;
+  $('#mArea').textContent = d.area;
+  $('#mYears').textContent = d.years;
+  $('#mDesc').textContent = d.desc;
+  $('#mTags').innerHTML = d.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+  drawDetailThumb($('#mCanvas'), d);
+  if(open) $('#modal').style.display='flex';
+}
+function closeModal(){ $('#modal').style.display='none'; }
+
+/* 详情图 */
+function drawDetailThumb(cv, d){
+  const ctx = cv.getContext('2d'), w=cv.width=cv.clientWidth, h=cv.height=cv.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  const g=ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,'rgba(93,208,255,.2)'); g.addColorStop(1,'rgba(124,250,176,.15)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  // 简易“河网+栅格”或“城市块”
+  ctx.strokeStyle='rgba(33,85,130,.6)'; ctx.lineWidth=1;
+  for(let x=0;x<w;x+=w/20){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=0;y<h;y+=h/14){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  ctx.strokeStyle='rgba(93,208,255,.95)'; ctx.lineWidth=4;
+  ctx.beginPath();
+  for(let t=0;t<60;t++){
+    const x=t/60*w, y=h*0.5 + Math.sin(t/6 + d.score/10)*h*0.2 + Math.sin(t/3)*h*0.05;
+    t===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+}
+
+/* 下载/API 占位 */
+function copyAPI(){
+  const name = $('#mTitle').textContent;
+  const txt = `GET /stac/search {"q":"${name}","limit":50}`;
+  navigator.clipboard.writeText(txt);
+  alert('已复制 STAC 查询到剪贴板');
+}
+function download(){
+  alert('此为演示。可在后端接入鉴权与签名URL，或跳转至对象存储/CDN。');
+}
+
+/* 订阅 */
+function subscribe(){
+  const email = $('#email').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ $('#subMsg').style.color='var(--warn)'; $('#subMsg').textContent='请输入有效邮箱'; return;}
+  $('#subMsg').style.color='var(--accent2)'; $('#subMsg').textContent='已订阅成功，稍后请查收确认邮件。';
+}
+
+/* 主题切换（浅/深色） */
+const themeBtn = $('#themeBtn');
+let dark = true;
+themeBtn.onclick = ()=>{
+  dark = !dark;
+  if(dark){document.documentElement.removeAttribute('data-theme')}
+  else {document.documentElement.setAttribute('data-theme','light')}
+  // 简化：通过切换 prefers-color-scheme 无法直接控制，这里用类切换变量（留白）
+  alert('已切换外观（演示）。生产中请通过CSS变量或类名切换完整主题。');
+}
+
+/* 英雄区“发光地球”动画（无外部库，性能友好） */
+const globe = $('#globe');
+const gctx = globe.getContext('2d');
+function drawGlobe(t=0){
+  const w=globe.width=globe.clientWidth, h=globe.height=globe.clientHeight;
+  gctx.clearRect(0,0,w,h);
+  // 背景渐变
+  const bg = gctx.createRadialGradient(w*0.7,h*0.2,10,w*0.5,h*0.6,Math.max(w,h)*0.8);
+  bg.addColorStop(0,'rgba(124,250,176,.12)'); bg.addColorStop(1,'rgba(93,208,255,.08)');
+  gctx.fillStyle=bg; gctx.fillRect(0,0,w,h);
+  // 地球圆盘
+  const r = Math.min(w,h)*0.38, cx=w*0.5, cy=h*0.55;
+  const grd = gctx.createRadialGradient(cx,cy,r*0.4,cx,cy,r);
+  grd.addColorStop(0,'rgba(93,208,255,.25)'); grd.addColorStop(1,'rgba(13,27,49,.8)');
+  gctx.fillStyle=grd; gctx.beginPath(); gctx.arc(cx,cy,r,0,Math.PI*2); gctx.fill();
+  // 经纬线
+  gctx.strokeStyle='rgba(169,190,223,.25)'; gctx.lineWidth=1;
+  for(let i=-60;i<=60;i+=20){
+    gctx.beginPath();
+    for(let lon=-180;lon<=180;lon+=5){
+      const lat=i*Math.PI/180, L=lon*Math.PI/180, k=Math.cos(L+t*0.0005);
+      const x=cx + r*Math.cos(lat)*k, y=cy + r*Math.sin(lat);
+      lon===-180?gctx.moveTo(x,y):gctx.lineTo(x,y);
+    }
+    gctx.stroke();
+  }
+  for(let lon=-180;lon<180;lon+=20){
+    gctx.beginPath();
+    for(let lat=-80;lat<=80;lat+=5){
+      const L=lon*Math.PI/180 + t*0.0005, la=lat*Math.PI/180;
+      const x=cx + r*Math.cos(la)*Math.cos(L), y=cy + r*Math.sin(la);
+      lat===-80?gctx.moveTo(x,y):gctx.lineTo(x,y);
+    }
+    gctx.stroke();
+  }
+  // 热点环
+  for(let i=0;i<30;i++){
+    const a = i/30*Math.PI*2 + t*0.001, rr=r*(0.6+0.35*Math.sin(i*1.7+t*0.002));
+    const x=cx + rr*Math.cos(a), y=cy + rr*Math.sin(a);
+    gctx.fillStyle='rgba(124,250,176,.9)'; gctx.beginPath(); gctx.arc(x,y,2,0,Math.PI*2); gctx.fill();
+  }
+  requestAnimationFrame(drawGlobe);
+}
+requestAnimationFrame(drawGlobe);
+
+/* 初始渲染与事件 */
+render(DATASETS);
+window.addEventListener('resize', ()=>render(DATASETS));
+applyFilters();
+</script>
+</body>
+</html>
